@@ -191,13 +191,6 @@ func DeleteTodoByID(w http.ResponseWriter, r*http.Request){
 		http.Error(w, "ID Tidak ditemukan", http.StatusBadRequest)
 		return
 	}
-	var request models.UpdateTodoRequest
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		http.Error(w, "Request tidak valid", http.StatusBadRequest)
-		return
-	}
-
 
 	id,err := strconv.Atoi(parts[2])
 	if err != nil {
@@ -205,11 +198,32 @@ func DeleteTodoByID(w http.ResponseWriter, r*http.Request){
 		return
 	}
 
-	for i := range todos {
-		if todos[i].ID == id {
-			todos = append(todos[:i], todos[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+	result, err := database.DB.Exec(
+		`DELETE FROM todos WHERE id = $1`,
+		id,
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(),http.StatusInternalServerError)
+		return
 	}
+
+	rows, err :=result.RowsAffected()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if rows == 0 {
+		http.Error(w, "Todo tidak ditemukan", http.StatusNotFound)
+		return 
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	// for i := range todos {
+	// 	if todos[i].ID == id {
+	// 		todos = append(todos[:i], todos[i+1:]...)
+	// 		w.WriteHeader(http.StatusNoContent)
+	// 		return
+	// 	}
+	// }
 }
